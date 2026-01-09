@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Iframe Grid Dashboard</title>
+  <style>
+    :root{
+      --bg:#0b1114;
+      --panel:#0f1b20;
+      --border:rgba(255,255,255,.08);
+      --text:rgba(255,255,255,.86);
+      --muted:rgba(255,255,255,.6);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+      --gap: 12px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(0,255,255,.08), transparent 55%),
+                  radial-gradient(900px 700px at 95% 15%, rgba(0,180,255,.06), transparent 50%),
+                  var(--bg);
+      color:var(--text);
+      overflow:hidden;
+    }
+
+    /* Top bar (optional, collapsible) */
+    .topbar{
+      height:26px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 4px;
+      border-bottom:1px solid var(--border);
+      background: rgba(10,16,19,.72);
+      backdrop-filter: blur(8px);
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:700;
+      letter-spacing:.5px;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background:#22d3ee;
+      box-shadow: 0 0 18px rgba(34,211,238,.55);
+    }
+    .right{
+      display:flex; align-items:center; gap:10px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .pill{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      padding:3px 5px;
+      border-radius: 999px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .pill:hover{background: rgba(255,255,255,.06); color:var(--text)}
+    .wrap{
+      height: calc(100% - 52px);
+      padding: var(--gap);
+    }
+
+    /* MAIN GRID:
+       - Left column: frames 1 & 2 stacked
+       - Middle: frame 3 (20% wider than frame 4)
+       - Right: frame 4
+    */
+    .grid{
+      height:100%;
+      display:grid;
+      grid-template-columns: 1fr 1.2fr 1fr; /* frame 3 is 20% wider than frame 4 */
+      gap: var(--gap);
+    }
+
+    .leftStack{
+      display:grid;
+      grid-template-rows: 1fr 1.2fr; /* frame 2 is 20% taller than frame 1 */
+      gap: var(--gap);
+      min-height:0;
+    }
+
+    .panel{
+      position:relative;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow:hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      box-shadow: var(--shadow);
+      min-height:0;
+    }
+
+    .label{
+      position:absolute;
+      top:10px; left:10px;
+      z-index:3;
+      font-size:12px;
+      letter-spacing:.4px;
+      color: var(--muted);
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.10);
+      padding:3px 5px;
+      border-radius:999px;
+      backdrop-filter: blur(6px);
+      pointer-events:none;
+    }
+
+    iframe{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      border:0;
+      background:#000;
+    }
+
+    /* Small help overlay for missing/blocked iframe sites */
+    .hint{
+      position:absolute;
+      left:10px; bottom:10px;
+      right:10px;
+      z-index:3;
+      font-size:12px;
+      line-height:1.35;
+      color: rgba(255,255,255,.7);
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.10);
+      padding:10px 12px;
+      border-radius: 12px;
+      backdrop-filter: blur(6px);
+      display:none;
+    }
+    .panel[data-blocked="true"] .hint{display:block}
+    .hint code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      color: rgba(255,255,255,.85);
+    }
+
+    /* Responsive: stack to 1 column on narrow screens */
+    @media (max-width: 900px){
+      body{overflow:auto}
+      .wrap{height:auto}
+      .grid{
+        height:auto;
+        grid-template-columns: 1fr;
+      }
+      .leftStack{grid-template-rows: 1fr 1.2fr}
+      .panel{height: 60vh;}
+      .panel.mid{height: 80vh;}
+      .panel.right{height: 70vh;}
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    
+    <div class="right">
+      <span id="now"></span>
+      <span class="pill" id="openHelp">How to set links</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid">
+      <div class="leftStack">
+        <section class="panel" id="p1">
+          
+          <iframe id="f1" loading="lazy" referrerpolicy="no-referrer"></iframe>
+          <div class="hint">
+            If this page won't load inside an iframe, the site may block embedding (X-Frame-Options / CSP).<br/>
+            Try a different URL, or host an internal page that allows embedding.
+          </div>
+        </section>
+
+        <section class="panel" id="p2">
+          
+          <iframe id="f2" loading="lazy" referrerpolicy="no-referrer"></iframe>
+          <div class="hint">
+            Tip: you can set URLs via querystring:<br/>
+            <code>?f1=https://...&amp;f2=https://...&amp;f3=https://...&amp;f4=https://...</code>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel mid" id="p3">
+        
+        <iframe id="f3" loading="lazy" referrerpolicy="no-referrer"></iframe>
+        <div class="hint">
+          If you control the framed app, ensure it does not send <code>X-Frame-Options: DENY/SAMEORIGIN</code>.
+        </div>
+      </section>
+
+      <section class="panel right" id="p4">
+       
+        <iframe id="f4" loading="lazy" referrerpolicy="no-referrer"></iframe>
+        <div class="hint">
+          For local testing, you can run:<br/>
+          <code>python -m http.server 8000</code> then open <code>http://localhost:8000</code>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <dialog id="help" style="max-width:760px;width:calc(100% - 40px);border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#0f1b20;color:rgba(255,255,255,.88);box-shadow:0 30px 80px rgba(0,0,0,.55);">
+    <form method="dialog" style="margin:0;padding:18px 18px 14px 18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <h3 style="margin:0;font-size:18px;">Set iframe links</h3>
+        <button style="border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.9);padding:8px 10px;border-radius:10px;cursor:pointer;">Close</button>
+      </div>
+      <p style="margin:10px 0 12px 0;color:rgba(255,255,255,.70);line-height:1.45;">
+        You can provide the 4 URLs in the address bar with query parameters:
+      </p>
+      <pre style="margin:0;padding:12px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.10);overflow:auto;"><code>?f1=https://your-url-1
+&f2=https://your-url-2
+&f3=https://your-url-3
+&f4=https://your-url-4</code></pre>
+      <p style="margin:12px 0 0 0;color:rgba(255,255,255,.70);line-height:1.45;">
+        Or edit <code>DEFAULTS</code> inside <code>index.html</code>.
+      </p>
+    </form>
+  </dialog>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function formatNow(){
+      const d = new Date();
+      return d.toLocaleString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'numeric', minute:'2-digit' });
+    }
+    function tick(){
+      $("now").textContent = formatNow();
+    }
+    tick(); setInterval(tick, 30_000);
+
+    // ---- Configure default URLs here (or pass via querystring) ----
+    const DEFAULTS = {
+      f1: "https://bamaone251.github.io/LoxLoadDash/",
+      f2: "http://209.46.123.110:3020/",
+      f3: "http://runstatus.andytalbert.com/",
+      f4: "http://loadmap.andytalbert.com/"
+    };
+
+    function getParamUrl(key){
+      const u = new URL(window.location.href);
+      const raw = u.searchParams.get(key);
+      if(!raw) return null;
+      try{
+        // Allow http(s) and relative paths
+        if(raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("/")) return raw;
+        // If user passed without protocol, assume https
+        return "https://" + raw;
+      }catch(e){
+        return null;
+      }
+    }
+
+    function setFrame(key){
+      const iframe = $(key);
+      const panel = iframe.closest(".panel");
+      const url = getParamUrl(key) || DEFAULTS[key];
+      iframe.src = url;
+
+      // Detect likely blocked embedding: if load fires but contentWindow is inaccessible, try to flag.
+      // This is best-effort and won't catch everything.
+      let loaded = false;
+      iframe.addEventListener("load", () => { loaded = true; }, { once:true });
+
+      // After a short delay, attempt to access location; cross-origin will throw, that's OK.
+      // If it remains about:blank after load, consider it blocked.
+      setTimeout(() => {
+        try{
+          const loc = iframe.contentWindow.location.href;
+          // If we can read it and it's still about:blank, it didn't navigate.
+          if(loaded && (loc === "about:blank" || loc === "")){
+            panel.dataset.blocked = "true";
+          }else{
+            panel.dataset.blocked = "false";
+          }
+        }catch(err){
+          // Cross-origin: we can't verify. Don't mark as blocked.
+          panel.dataset.blocked = "false";
+        }
+      }, 2500);
+    }
+
+    ["f1","f2","f3","f4"].forEach(setFrame);
+
+    $("openHelp").addEventListener("click", () => $("help").showModal());
+
+    // ESC closes dialog by default; also support ESC to close iframes help quickly
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape"){
+        const dlg = $("help");
+        if(dlg.open) dlg.close();
+      }
+    });
+  </script>
+</body>
+</html>
